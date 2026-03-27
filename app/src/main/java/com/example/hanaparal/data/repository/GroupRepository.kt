@@ -1,0 +1,18 @@
+package com.example.hanaparal.data.repository
+
+import com.example.hanaparal.data.model.Announcement
+import com.example.hanaparal.data.model.Group
+import com.example.hanaparal.data.model.Member
+import kotlinx.coroutines.flow.Flow
+
+interface GroupRepository {
+    suspend fun createGroup(group: Group): Result<String>
+    suspend fun joinGroup(groupId: String, member: Member): Result<Unit>
+    suspend fun leaveGroup(groupId: String, uid: String): Result<Unit>
+    fun observeAllGroups(): Flow<List<Group>>
+    fun observeGroup(groupId: String): Flow<Group?>
+    fun observeMembers(groupId: String): Flow<List<Member>>
+    suspend fun sendAnnouncement(announcement: Announcement): Result<Unit>
+    fun observeAnnouncements(groupId: String): Flow<List<Announcement>>
+    suspend fun isGroupMember(groupId: String, uid: String): Boolean
+}
