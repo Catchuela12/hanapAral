@@ -3,7 +3,7 @@ package com.example.hanaparal.data.repository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
@@ -12,7 +12,7 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
-    private val database: FirebaseDatabase
+    private val firestore: FirebaseFirestore
 ) : AuthRepository {
 
     override val currentUser: FirebaseUser?
@@ -25,9 +25,9 @@ class AuthRepositoryImpl @Inject constructor(
             val user = result.user!!
 
             val token = FirebaseMessaging.getInstance().token.await()
-            database.getReference("fcm_tokens")
-                .child(user.uid)
-                .setValue(mapOf(
+            firestore.collection("fcm_tokens")
+                .document(user.uid)
+                .set(mapOf(
                     "token" to token,
                     "updatedAt" to System.currentTimeMillis()
                 )).await()
@@ -39,19 +39,17 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun signOut() {
-        database.goOffline()
         auth.signOut()
-        database.goOnline()
     }
 
     override suspend fun isProfileComplete(): Boolean {
         val uid = auth.currentUser?.uid ?: return false
         return try {
-            val snapshot = database.getReference("users")
-                .child(uid)
+            val document = firestore.collection("users")
+                .document(uid)
                 .get()
                 .await()
-            snapshot.exists() && snapshot.child("name").value != null
+            document.exists() && document.contains("name")
         } catch (e: Exception) {
             false
         }
