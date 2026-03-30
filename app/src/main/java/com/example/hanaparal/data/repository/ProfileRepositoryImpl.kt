@@ -1,27 +1,24 @@
 package com.example.hanaparal.data.repository
 
 import com.example.hanaparal.data.model.User
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
-import kotlinx.coroutines.channels.awaitClose
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ProfileRepositoryImpl @Inject constructor(
-    private val database: FirebaseDatabase
+    private val firestore: FirebaseFirestore
 ) : ProfileRepository {
 
     override suspend fun saveProfile(user: User): Result<Unit> {
         return try {
-            database.getReference("users")
-                .child(user.uid)
-                .setValue(user)
+            firestore.collection("users")
+                .document(user.uid)
+                .set(user)
                 .await()
             Result.success(Unit)
         } catch (e: Exception) {
@@ -31,11 +28,11 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun getProfile(uid: String): Result<User> {
         return try {
-            val snapshot = database.getReference("users")
-                .child(uid)
+            val document = firestore.collection("users")
+                .document(uid)
                 .get()
                 .await()
-            val user = snapshot.getValue(User::class.java)
+            val user = document.toObject(User::class.java)
             if (user != null) Result.success(user)
             else Result.failure(Exception("Profile not found"))
         } catch (e: Exception) {
@@ -45,9 +42,9 @@ class ProfileRepositoryImpl @Inject constructor(
 
     override suspend fun updateProfile(uid: String, updates: Map<String, Any>): Result<Unit> {
         return try {
-            database.getReference("users")
-                .child(uid)
-                .updateChildren(updates)
+            firestore.collection("users")
+                .document(uid)
+                .update(updates)
                 .await()
             Result.success(Unit)
         } catch (e: Exception) {
@@ -55,17 +52,10 @@ class ProfileRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun observeProfile(uid: String): Flow<User?> = callbackFlow {
-        val ref = database.getReference("users").child(uid)
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                trySend(snapshot.getValue(User::class.java))
-            }
-            override fun onCancelled(error: DatabaseError) {
-                trySend(null)
-            }
-        }
-        ref.addValueEventListener(listener)
-        awaitClose { ref.removeEventListener(listener) }
+    override fun observeProfile(uid: String): Flow<User?> {
+        return firestore.collection("users")
+            .document(uid)
+            .snapshots()
+            .map { it.toObject(User::class.java) }
     }
 }
