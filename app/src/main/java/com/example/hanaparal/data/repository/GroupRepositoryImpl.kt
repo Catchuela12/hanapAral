@@ -3,37 +3,38 @@ package com.example.hanaparal.data.repository
 import com.example.hanaparal.data.model.Announcement
 import com.example.hanaparal.data.model.Group
 import com.example.hanaparal.data.model.Member
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
-import kotlinx.coroutines.channels.awaitClose
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.snapshots
+import com.google.firebase.firestore.toObject
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class GroupRepositoryImpl @Inject constructor(
-    private val database: FirebaseDatabase
+    private val firestore: FirebaseFirestore
 ) : GroupRepository {
 
     override suspend fun createGroup(group: Group): Result<String> {
         return try {
-            val ref = database.getReference("groups").push()
-            val groupId = ref.key!!
+            val groupRef = firestore.collection("groups").document()
+            val groupId = groupRef.id
             val newGroup = group.copy(groupId = groupId)
-            ref.setValue(newGroup).await()
-
-            database.getReference("members")
-                .child(groupId)
-                .child(group.creatorId)
-                .setValue(Member(
+            
+            firestore.runBatch { batch ->
+                batch.set(groupRef, newGroup)
+                
+                val memberRef = groupRef.collection("members").document(group.creatorId)
+                batch.set(memberRef, Member(
                     uid = group.creatorId,
                     displayName = "",
                     joinedAt = System.currentTimeMillis()
-                )).await()
+                ))
+            }.await()
 
             Result.success(groupId)
         } catch (e: Exception) {
@@ -43,28 +44,21 @@ class GroupRepositoryImpl @Inject constructor(
 
     override suspend fun joinGroup(groupId: String, member: Member): Result<Unit> {
         return try {
-            val groupSnapshot = database.getReference("groups")
-                .child(groupId)
-                .get()
-                .await()
-            val group = groupSnapshot.getValue(Group::class.java)
-                ?: return Result.failure(Exception("Group not found"))
+            val groupRef = firestore.collection("groups").document(groupId)
+            
+            firestore.runTransaction { transaction ->
+                val snapshot = transaction.get(groupRef)
+                val group = snapshot.toObject(Group::class.java)
+                    ?: throw Exception("Group not found")
 
-            if (group.memberCount >= group.maxMembers) {
-                return Result.failure(Exception("Group is full"))
-            }
+                if (group.memberCount >= group.maxMembers) {
+                    throw Exception("Group is full")
+                }
 
-            database.getReference("members")
-                .child(groupId)
-                .child(member.uid)
-                .setValue(member)
-                .await()
-
-            database.getReference("groups")
-                .child(groupId)
-                .child("memberCount")
-                .setValue(group.memberCount + 1)
-                .await()
+                val memberRef = groupRef.collection("members").document(member.uid)
+                transaction.set(memberRef, member)
+                transaction.update(groupRef, "memberCount", FieldValue.increment(1))
+            }.await()
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -74,24 +68,13 @@ class GroupRepositoryImpl @Inject constructor(
 
     override suspend fun leaveGroup(groupId: String, uid: String): Result<Unit> {
         return try {
-            database.getReference("members")
-                .child(groupId)
-                .child(uid)
-                .removeValue()
-                .await()
+            val groupRef = firestore.collection("groups").document(groupId)
+            val memberRef = groupRef.collection("members").document(uid)
 
-            val groupSnapshot = database.getReference("groups")
-                .child(groupId)
-                .get()
-                .await()
-            val group = groupSnapshot.getValue(Group::class.java)
-            if (group != null) {
-                database.getReference("groups")
-                    .child(groupId)
-                    .child("memberCount")
-                    .setValue((group.memberCount - 1).coerceAtLeast(0))
-                    .await()
-            }
+            firestore.runBatch { batch ->
+                batch.delete(memberRef)
+                batch.update(groupRef, "memberCount", FieldValue.increment(-1))
+            }.await()
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -99,92 +82,66 @@ class GroupRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun observeAllGroups(): Flow<List<Group>> = callbackFlow {
-        val ref = database.getReference("groups")
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val groups = snapshot.children.mapNotNull {
-                    it.getValue(Group::class.java)
-                }
-                trySend(groups)
+    override fun observeAllGroups(): Flow<List<Group>> {
+        return firestore.collection("groups")
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { it.toObject(Group::class.java) }
             }
-            override fun onCancelled(error: DatabaseError) {
-                trySend(emptyList())
-            }
-        }
-        ref.addValueEventListener(listener)
-        awaitClose { ref.removeEventListener(listener) }
     }
 
-    override fun observeGroup(groupId: String): Flow<Group?> = callbackFlow {
-        val ref = database.getReference("groups").child(groupId)
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                trySend(snapshot.getValue(Group::class.java))
-            }
-            override fun onCancelled(error: DatabaseError) {
-                trySend(null)
-            }
-        }
-        ref.addValueEventListener(listener)
-        awaitClose { ref.removeEventListener(listener) }
+    override fun observeGroup(groupId: String): Flow<Group?> {
+        return firestore.collection("groups")
+            .document(groupId)
+            .snapshots()
+            .map { it.toObject(Group::class.java) }
     }
 
-    override fun observeMembers(groupId: String): Flow<List<Member>> = callbackFlow {
-        val ref = database.getReference("members").child(groupId)
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val members = snapshot.children.mapNotNull {
-                    it.getValue(Member::class.java)
-                }
-                trySend(members)
+    override fun observeMembers(groupId: String): Flow<List<Member>> {
+        return firestore.collection("groups")
+            .document(groupId)
+            .collection("members")
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { it.toObject(Member::class.java) }
             }
-            override fun onCancelled(error: DatabaseError) {
-                trySend(emptyList())
-            }
-        }
-        ref.addValueEventListener(listener)
-        awaitClose { ref.removeEventListener(listener) }
     }
 
     override suspend fun sendAnnouncement(announcement: Announcement): Result<Unit> {
         return try {
-            val ref = database.getReference("announcements")
-                .child(announcement.groupId)
-                .push()
-            val announcementId = ref.key!!
-            ref.setValue(announcement.copy(announcementId = announcementId)).await()
+            val ref = firestore.collection("groups")
+                .document(announcement.groupId)
+                .collection("announcements")
+                .document()
+            
+            val announcementId = ref.id
+            ref.set(announcement.copy(announcementId = announcementId)).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    override fun observeAnnouncements(groupId: String): Flow<List<Announcement>> = callbackFlow {
-        val ref = database.getReference("announcements").child(groupId)
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val announcements = snapshot.children.mapNotNull {
-                    it.getValue(Announcement::class.java)
-                }.sortedByDescending { it.createdAt }
-                trySend(announcements)
+    override fun observeAnnouncements(groupId: String): Flow<List<Announcement>> {
+        return firestore.collection("groups")
+            .document(groupId)
+            .collection("announcements")
+            .orderBy("createdAt", Query.Direction.DESCENDING)
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { it.toObject(Announcement::class.java) }
             }
-            override fun onCancelled(error: DatabaseError) {
-                trySend(emptyList())
-            }
-        }
-        ref.addValueEventListener(listener)
-        awaitClose { ref.removeEventListener(listener) }
     }
 
     override suspend fun isGroupMember(groupId: String, uid: String): Boolean {
         return try {
-            val snapshot = database.getReference("members")
-                .child(groupId)
-                .child(uid)
+            val document = firestore.collection("groups")
+                .document(groupId)
+                .collection("members")
+                .document(uid)
                 .get()
                 .await()
-            snapshot.exists()
+            document.exists()
         } catch (e: Exception) {
             false
         }
