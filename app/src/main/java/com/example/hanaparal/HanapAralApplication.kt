@@ -8,7 +8,6 @@ import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
 class HanapAralApplication : Application() {
-
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
@@ -16,32 +15,15 @@ class HanapAralApplication : Application() {
 
     private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channels = listOf(
-                NotificationChannel(
-                    "hanaparal_general",
-                    "General Notifications",
-                    NotificationManager.IMPORTANCE_DEFAULT
-                ).apply {
-                    description = "Used for general app notifications"
-                },
-                NotificationChannel(
-                    "hanaparal_announcements",
-                    "Group Announcements",
-                    NotificationManager.IMPORTANCE_HIGH
-                ).apply {
-                    description = "Notifications for new group announcements"
-                },
-                NotificationChannel(
-                    "hanaparal_reminders",
-                    "Study Reminders",
-                    NotificationManager.IMPORTANCE_DEFAULT
-                ).apply {
-                    description = "Reminders for scheduled study sessions"
-                }
-            )
-
             val manager = getSystemService(NotificationManager::class.java)
-            channels.forEach { manager.createNotificationChannel(it) }
+            val channels = listOf(
+                NotificationChannel("hanaparal_general", "General", NotificationManager.IMPORTANCE_DEFAULT),
+                NotificationChannel("hanaparal_announcements", "Announcements", NotificationManager.IMPORTANCE_HIGH),
+                NotificationChannel("hanaparal_reminders", "Reminders", NotificationManager.IMPORTANCE_DEFAULT)
+            )
+            manager.createNotificationChannel(channels[0])
+            manager.createNotificationChannel(channels[1])
+            manager.createNotificationChannel(channels[2])
         }
     }
 }

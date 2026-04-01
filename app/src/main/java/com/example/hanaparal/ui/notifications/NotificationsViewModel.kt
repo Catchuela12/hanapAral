@@ -1,6 +1,5 @@
 package com.example.hanaparal.ui.notifications
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hanaparal.data.model.Announcement
@@ -8,148 +7,103 @@ import com.example.hanaparal.data.model.Group
 import com.example.hanaparal.data.model.Member
 import com.example.hanaparal.data.repository.GroupRepository
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 @HiltViewModel
 class NotificationsViewModel @Inject constructor(
-    private val groupRepository: GroupRepository,
+    private val repository: GroupRepository,
     private val auth: FirebaseAuth,
-    private val fcm: FirebaseMessaging
+    private val remoteConfig: FirebaseRemoteConfig
 ) : ViewModel() {
 
-    sealed class NotificationsUiState {
-        object Loading : NotificationsUiState()
-        object Empty : NotificationsUiState()
-        data class Success(val announcements: List<Pair<String, Announcement>>) : NotificationsUiState()
-        data class Error(val message: String) : NotificationsUiState()
+    sealed class UiState {
+        object Loading : UiState()
+        object Empty : UiState()
+        data class Success(val announcements: List<Pair<String, Announcement>>) : UiState()
+        data class Error(val message: String) : UiState()
     }
 
-    private val _uiState = MutableStateFlow<NotificationsUiState>(NotificationsUiState.Loading)
-    val uiState: StateFlow<NotificationsUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
+    val uiState = _uiState.asStateFlow()
 
-    private val currentUid: String
-        get() = auth.currentUser?.uid ?: ""
+    private val _remoteMsg = MutableStateFlow<String?>(null)
+    val remoteMsg = _remoteMsg.asStateFlow()
 
     init {
-        logFcmToken()
-        ensureAuthenticatedAndLoad()
-    }
-
-    private fun logFcmToken() {
-        viewModelScope.launch {
-            try {
-                val token = fcm.token.await()
-                Log.d("FCM_TEST", "Current FCM Token: $token")
-            } catch (e: Exception) {
-                Log.e("FCM_TEST", "Failed to get token: ${e.message}")
-            }
-        }
-    }
-
-    private fun ensureAuthenticatedAndLoad() {
-        viewModelScope.launch {
-            _uiState.value = NotificationsUiState.Loading
-            if (auth.currentUser == null) {
-                try {
-                    auth.signInAnonymously().await()
-                } catch (e: Exception) {
-                    _uiState.value = NotificationsUiState.Error("Auth failed: ${e.message}")
-                    return@launch
-                }
-            }
-            loadMyGroupAnnouncements()
-        }
-    }
-
-    private fun loadMyGroupAnnouncements() {
-        viewModelScope.launch {
-            try {
-                val groups = groupRepository.observeAllGroups().first()
-
-                if (groups.isEmpty()) {
-                    _uiState.value = NotificationsUiState.Empty
-                    return@launch
-                }
-
-                val myGroupIds = mutableListOf<String>()
-                for (group in groups) {
-                    if (groupRepository.isGroupMember(group.groupId, currentUid)) {
-                        myGroupIds.add(group.groupId)
-                    }
-                }
-
-                if (myGroupIds.isEmpty()) {
-                    _uiState.value = NotificationsUiState.Empty
-                    return@launch
-                }
-
-                val allAnnouncements = mutableListOf<Pair<String, Announcement>>()
-                for (groupId in myGroupIds) {
-                    val announcements = groupRepository.observeAnnouncements(groupId).first()
-                    announcements.forEach { announcement ->
-                        allAnnouncements.add(Pair(groupId, announcement))
-                    }
-                }
-
-                if (allAnnouncements.isEmpty()) {
-                    _uiState.value = NotificationsUiState.Empty
-                } else {
-                    _uiState.value = NotificationsUiState.Success(
-                        allAnnouncements.sortedByDescending { it.second.createdAt }
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = NotificationsUiState.Error(
-                    e.message ?: "Failed to load notifications"
-                )
-            }
-        }
-    }
-
-    fun joinDemoGroup() {
-        viewModelScope.launch {
-            _uiState.value = NotificationsUiState.Loading
-            try {
-                // 1. Create a demo group if none exist
-                val groups = groupRepository.observeAllGroups().first()
-                val targetGroupId = if (groups.isEmpty()) {
-                    groupRepository.createGroup(
-                        Group(
-                            name = "Demo Study Group",
-                            subject = "Android Testing",
-                            description = "A group for testing notifications",
-                            creatorId = "system"
-                        )
-                    ).getOrThrow()
-                } else {
-                    groups.first().groupId
-                }
-
-                // 2. Join the group
-                val member = Member(
-                    uid = currentUid,
-                    displayName = "Test User",
-                    joinedAt = System.currentTimeMillis()
-                )
-                groupRepository.joinGroup(targetGroupId, member).getOrThrow()
-
-                // 3. Refresh
-                loadMyGroupAnnouncements()
-            } catch (e: Exception) {
-                _uiState.value = NotificationsUiState.Error("Failed to join demo: ${e.message}")
-            }
-        }
+        refresh()
     }
 
     fun refresh() {
-        ensureAuthenticatedAndLoad()
+        viewModelScope.launch {
+            _uiState.value = UiState.Loading
+            fetchRemoteConfig()
+            if (ensureAuth()) loadNotifications()
+        }
+    }
+
+    private suspend fun ensureAuth(): Boolean {
+        if (auth.currentUser != null) return true
+        return try {
+            auth.signInAnonymously().await()
+            true
+        } catch (e: Exception) {
+            _uiState.value = UiState.Error("Auth failed: ${e.message}")
+            false
+        }
+    }
+
+    private suspend fun fetchRemoteConfig() {
+        try {
+            remoteConfig.fetchAndActivate().await()
+            if (remoteConfig.getBoolean("show_announcement")) {
+                _remoteMsg.value = remoteConfig.getString("announcement_message")
+            } else {
+                _remoteMsg.value = null
+            }
+        } catch (e: Exception) { /* Ignore config errors */ }
+    }
+
+    private suspend fun loadNotifications() {
+        try {
+            val uid = auth.currentUser?.uid ?: return
+            val groups = repository.observeAllGroups().first()
+            
+            val myGroups = groups.filter { repository.isGroupMember(it.groupId, uid) }
+            if (myGroups.isEmpty()) {
+                _uiState.value = UiState.Empty
+                return
+            }
+
+            val announcements = myGroups.flatMap { group ->
+                repository.observeAnnouncements(group.groupId).first().map { group.groupId to it }
+            }.sortedByDescending { it.second.createdAt }
+
+            _uiState.value = if (announcements.isEmpty()) UiState.Empty else UiState.Success(announcements)
+        } catch (e: Exception) {
+            _uiState.value = UiState.Error(e.message ?: "Load failed")
+        }
+    }
+
+    fun joinDemo() {
+        viewModelScope.launch {
+            try {
+                _uiState.value = UiState.Loading
+                val groups = repository.observeAllGroups().first()
+                val gid = if (groups.isEmpty()) {
+                    repository.createGroup(Group(name = "Demo Group", creatorId = "system")).getOrThrow()
+                } else groups[0].groupId
+
+                val member = Member(uid = auth.currentUser?.uid ?: "", displayName = "Test User")
+                repository.joinGroup(gid, member).getOrThrow()
+                loadNotifications()
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error("Join failed: ${e.message}")
+            }
+        }
     }
 }
