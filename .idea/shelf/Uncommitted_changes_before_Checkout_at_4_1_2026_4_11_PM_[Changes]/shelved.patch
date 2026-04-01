@@ -1,0 +1,905 @@
+Index: app/src/main/java/com/example/hanaparal/MainActivity.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.hanaparal\r\n\r\nimport android.os.Bundle\r\nimport androidx.activity.ComponentActivity\r\nimport androidx.activity.compose.setContent\r\nimport androidx.activity.enableEdgeToEdge\r\nimport androidx.compose.foundation.layout.fillMaxSize\r\nimport androidx.compose.foundation.layout.padding\r\nimport androidx.compose.material3.Scaffold\r\nimport androidx.compose.material3.Text\r\nimport androidx.compose.runtime.Composable\r\nimport androidx.compose.ui.Modifier\r\nimport androidx.compose.ui.tooling.preview.Preview\r\nimport com.example.hanaparal.ui.theme.HanapAralTheme\r\n\r\nclass MainActivity : ComponentActivity() {\r\n    override fun onCreate(savedInstanceState: Bundle?) {\r\n        super.onCreate(savedInstanceState)\r\n        enableEdgeToEdge()\r\n        setContent {\r\n            HanapAralTheme {\r\n                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->\r\n                    Greeting(\r\n                        name = \"Android\",\r\n                        modifier = Modifier.padding(innerPadding)\r\n                    )\r\n                }\r\n            }\r\n        }\r\n    }\r\n}\r\n\r\n@Composable\r\nfun Greeting(name: String, modifier: Modifier = Modifier) {\r\n    Text(\r\n        text = \"Hello $name!\",\r\n        modifier = modifier\r\n    )\r\n}\r\n\r\n@Preview(showBackground = true)\r\n@Composable\r\nfun GreetingPreview() {\r\n    HanapAralTheme {\r\n        Greeting(\"Android\")\r\n    }\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/hanaparal/MainActivity.kt b/app/src/main/java/com/example/hanaparal/MainActivity.kt
+--- a/app/src/main/java/com/example/hanaparal/MainActivity.kt	(revision 137a7fb7ae6194232aaaca83730aaf69d6753790)
++++ b/app/src/main/java/com/example/hanaparal/MainActivity.kt	(date 1774959424720)
+@@ -4,15 +4,16 @@
+ import androidx.activity.ComponentActivity
+ import androidx.activity.compose.setContent
+ import androidx.activity.enableEdgeToEdge
++import androidx.compose.foundation.layout.Box
+ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.foundation.layout.padding
+ import androidx.compose.material3.Scaffold
+-import androidx.compose.material3.Text
+-import androidx.compose.runtime.Composable
+ import androidx.compose.ui.Modifier
+-import androidx.compose.ui.tooling.preview.Preview
++import com.example.hanaparal.ui.notifications.NotificationsScreen
+ import com.example.hanaparal.ui.theme.HanapAralTheme
++import dagger.hilt.android.AndroidEntryPoint
+ 
++@AndroidEntryPoint
+ class MainActivity : ComponentActivity() {
+     override fun onCreate(savedInstanceState: Bundle?) {
+         super.onCreate(savedInstanceState)
+@@ -20,28 +21,11 @@
+         setContent {
+             HanapAralTheme {
+                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+-                    Greeting(
+-                        name = "Android",
+-                        modifier = Modifier.padding(innerPadding)
+-                    )
+-                }
+-            }
+-        }
+-    }
+-}
+-
+-@Composable
+-fun Greeting(name: String, modifier: Modifier = Modifier) {
+-    Text(
+-        text = "Hello $name!",
+-        modifier = modifier
+-    )
++                    Box(modifier = Modifier.padding(innerPadding)) {
++                        NotificationsScreen()
++                    }
++                }
++            }
++        }
++    }
+ }
+-
+-@Preview(showBackground = true)
+-@Composable
+-fun GreetingPreview() {
+-    HanapAralTheme {
+-        Greeting("Android")
+-    }
+-}
+\ No newline at end of file
+Index: app/src/main/java/com/example/hanaparal/data/repository/MessagingRepository.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.hanaparal.data.repository\r\n\r\nimport android.util.Log\r\nimport com.example.hanaparal.data.source.DatabaseDataSource\r\nimport com.google.firebase.messaging.FirebaseMessaging\r\nimport kotlinx.coroutines.Dispatchers\r\nimport kotlinx.coroutines.tasks.await\r\nimport kotlinx.coroutines.withContext\r\nimport okhttp3.MediaType.Companion.toMediaType\r\nimport okhttp3.OkHttpClient\r\nimport okhttp3.Request\r\nimport okhttp3.RequestBody.Companion.toRequestBody\r\nimport org.json.JSONObject\r\nimport javax.inject.Inject\r\nimport javax.inject.Singleton\r\n\r\n@Singleton\r\nclass MessagingRepository @Inject constructor(\r\n    private val databaseDataSource: DatabaseDataSource,\r\n    private val messaging: FirebaseMessaging\r\n) {\r\n    companion object {\r\n        private const val TAG = \"MessagingRepository\"\r\n        private const val PROJECT_ID = \"hanaparal-a5ffd\"\r\n        private const val FCM_URL =\r\n            \"https://fcm.googleapis.com/v1/projects/$PROJECT_ID/messages:send\"\r\n    }\r\n\r\n    // ── Topic Subscriptions ────────────────────────────────────────────────────\r\n\r\n    suspend fun subscribeToGroup(groupId: String) {\r\n        try {\r\n            messaging.subscribeToTopic(\"group_$groupId\").await()\r\n            Log.d(TAG, \"Subscribed to group_$groupId\")\r\n        } catch (e: Exception) {\r\n            Log.e(TAG, \"Failed to subscribe to group: ${e.message}\")\r\n        }\r\n    }\r\n\r\n    suspend fun unsubscribeFromGroup(groupId: String) {\r\n        try {\r\n            messaging.unsubscribeFromTopic(\"group_$groupId\").await()\r\n            Log.d(TAG, \"Unsubscribed from group_$groupId\")\r\n        } catch (e: Exception) {\r\n            Log.e(TAG, \"Failed to unsubscribe from group: ${e.message}\")\r\n        }\r\n    }\r\n\r\n    suspend fun subscribeToAnnouncements(groupId: String) {\r\n        try {\r\n            messaging.subscribeToTopic(\"announcements_$groupId\").await()\r\n            Log.d(TAG, \"Subscribed to announcements_$groupId\")\r\n        } catch (e: Exception) {\r\n            Log.e(TAG, \"Failed to subscribe to announcements: ${e.message}\")\r\n        }\r\n    }\r\n\r\n    suspend fun unsubscribeFromAnnouncements(groupId: String) {\r\n        try {\r\n            messaging.unsubscribeFromTopic(\"announcements_$groupId\").await()\r\n            Log.d(TAG, \"Unsubscribed from announcements_$groupId\")\r\n        } catch (e: Exception) {\r\n            Log.e(TAG, \"Failed to unsubscribe from announcements: ${e.message}\")\r\n        }\r\n    }\r\n\r\n    // ── Send Notifications ─────────────────────────────────────────────────────\r\n\r\n    suspend fun sendNewMemberNotification(\r\n        groupId: String,\r\n        groupName: String,\r\n        memberName: String\r\n    ) = withContext(Dispatchers.IO) {\r\n        try {\r\n            val message = JSONObject().apply {\r\n                put(\"message\", JSONObject().apply {\r\n                    put(\"topic\", \"group_$groupId\")\r\n                    put(\"notification\", JSONObject().apply {\r\n                        put(\"title\", \"\uD83D\uDC4B New Member Joined!\")\r\n                        put(\"body\", \"$memberName joined $groupName\")\r\n                    })\r\n                    put(\"data\", JSONObject().apply {\r\n                        put(\"type\", \"new_member\")\r\n                        put(\"groupId\", groupId)\r\n                        put(\"groupName\", groupName)\r\n                        put(\"memberName\", memberName)\r\n                    })\r\n                    put(\"android\", JSONObject().apply {\r\n                        put(\"notification\", JSONObject().apply {\r\n                            put(\"channel_id\", \"hanaparal_general\")\r\n                            put(\"sound\", \"default\")\r\n                            put(\"priority\", \"high\")\r\n                        })\r\n                    })\r\n                })\r\n            }\r\n            Log.d(TAG, \"New member notification prepared for topic: group_$groupId\")\r\n            Log.d(TAG, \"Message: ${message.toString()}\")\r\n        } catch (e: Exception) {\r\n            Log.e(TAG, \"Failed to send new member notification: ${e.message}\")\r\n        }\r\n    }\r\n\r\n    suspend fun sendAnnouncementNotification(\r\n        groupId: String,\r\n        groupName: String,\r\n        senderName: String,\r\n        message: String\r\n    ) = withContext(Dispatchers.IO) {\r\n        try {\r\n            val fcmMessage = JSONObject().apply {\r\n                put(\"message\", JSONObject().apply {\r\n                    put(\"topic\", \"announcements_$groupId\")\r\n                    put(\"notification\", JSONObject().apply {\r\n                        put(\"title\", \"\uD83D\uDCE2 $groupName\")\r\n                        put(\"body\", \"$senderName: $message\")\r\n                    })\r\n                    put(\"data\", JSONObject().apply {\r\n                        put(\"type\", \"announcement\")\r\n                        put(\"groupId\", groupId)\r\n                        put(\"groupName\", groupName)\r\n                        put(\"senderName\", senderName)\r\n                    })\r\n                    put(\"android\", JSONObject().apply {\r\n                        put(\"notification\", JSONObject().apply {\r\n                            put(\"channel_id\", \"hanaparal_announcements\")\r\n                            put(\"sound\", \"default\")\r\n                            put(\"priority\", \"high\")\r\n                        })\r\n                    })\r\n                })\r\n            }\r\n            Log.d(TAG, \"Announcement notification prepared for topic: announcements_$groupId\")\r\n            Log.d(TAG, \"Message: ${fcmMessage.toString()}\")\r\n        } catch (e: Exception) {\r\n            Log.e(TAG, \"Failed to send announcement notification: ${e.message}\")\r\n        }\r\n    }\r\n\r\n    suspend fun sendStudyReminder(\r\n        groupId: String,\r\n        groupName: String,\r\n        schedule: String\r\n    ) = withContext(Dispatchers.IO) {\r\n        try {\r\n            val message = JSONObject().apply {\r\n                put(\"message\", JSONObject().apply {\r\n                    put(\"topic\", \"group_$groupId\")\r\n                    put(\"notification\", JSONObject().apply {\r\n                        put(\"title\", \"\uD83D\uDCDA Study Reminder!\")\r\n                        put(\"body\", \"$groupName meets $schedule\")\r\n                    })\r\n                    put(\"data\", JSONObject().apply {\r\n                        put(\"type\", \"reminder\")\r\n                        put(\"groupId\", groupId)\r\n                        put(\"groupName\", groupName)\r\n                        put(\"schedule\", schedule)\r\n                    })\r\n                    put(\"android\", JSONObject().apply {\r\n                        put(\"notification\", JSONObject().apply {\r\n                            put(\"channel_id\", \"hanaparal_reminders\")\r\n                            put(\"sound\", \"default\")\r\n                            put(\"priority\", \"high\")\r\n                        })\r\n                    })\r\n                })\r\n            }\r\n            Log.d(TAG, \"Study reminder prepared for topic: group_$groupId\")\r\n            Log.d(TAG, \"Message: ${message.toString()}\")\r\n        } catch (e: Exception) {\r\n            Log.e(TAG, \"Failed to send study reminder: ${e.message}\")\r\n        }\r\n    }\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/hanaparal/data/repository/MessagingRepository.kt b/app/src/main/java/com/example/hanaparal/data/repository/MessagingRepository.kt
+--- a/app/src/main/java/com/example/hanaparal/data/repository/MessagingRepository.kt	(revision 137a7fb7ae6194232aaaca83730aaf69d6753790)
++++ b/app/src/main/java/com/example/hanaparal/data/repository/MessagingRepository.kt	(date 1775030151037)
+@@ -1,15 +1,16 @@
+ package com.example.hanaparal.data.repository
+ 
++import android.app.NotificationManager
++import android.content.Context
+ import android.util.Log
++import androidx.core.app.NotificationCompat
++import com.example.hanaparal.R
+ import com.example.hanaparal.data.source.DatabaseDataSource
+ import com.google.firebase.messaging.FirebaseMessaging
++import dagger.hilt.android.qualifiers.ApplicationContext
+ import kotlinx.coroutines.Dispatchers
+ import kotlinx.coroutines.tasks.await
+ import kotlinx.coroutines.withContext
+-import okhttp3.MediaType.Companion.toMediaType
+-import okhttp3.OkHttpClient
+-import okhttp3.Request
+-import okhttp3.RequestBody.Companion.toRequestBody
+ import org.json.JSONObject
+ import javax.inject.Inject
+ import javax.inject.Singleton
+@@ -17,32 +18,19 @@
+ @Singleton
+ class MessagingRepository @Inject constructor(
+     private val databaseDataSource: DatabaseDataSource,
+-    private val messaging: FirebaseMessaging
++    private val messaging: FirebaseMessaging,
++    @ApplicationContext private val context: Context
+ ) {
+     companion object {
+         private const val TAG = "MessagingRepository"
+-        private const val PROJECT_ID = "hanaparal-a5ffd"
+-        private const val FCM_URL =
+-            "https://fcm.googleapis.com/v1/projects/$PROJECT_ID/messages:send"
+     }
+-
+-    // ── Topic Subscriptions ────────────────────────────────────────────────────
+ 
+     suspend fun subscribeToGroup(groupId: String) {
+         try {
+             messaging.subscribeToTopic("group_$groupId").await()
+             Log.d(TAG, "Subscribed to group_$groupId")
+         } catch (e: Exception) {
+-            Log.e(TAG, "Failed to subscribe to group: ${e.message}")
+-        }
+-    }
+-
+-    suspend fun unsubscribeFromGroup(groupId: String) {
+-        try {
+-            messaging.unsubscribeFromTopic("group_$groupId").await()
+-            Log.d(TAG, "Unsubscribed from group_$groupId")
+-        } catch (e: Exception) {
+-            Log.e(TAG, "Failed to unsubscribe from group: ${e.message}")
++            Log.e(TAG, "Failed to subscribe: ${e.message}")
+         }
+     }
+ 
+@@ -51,54 +39,23 @@
+             messaging.subscribeToTopic("announcements_$groupId").await()
+             Log.d(TAG, "Subscribed to announcements_$groupId")
+         } catch (e: Exception) {
+-            Log.e(TAG, "Failed to subscribe to announcements: ${e.message}")
+-        }
+-    }
+-
+-    suspend fun unsubscribeFromAnnouncements(groupId: String) {
+-        try {
+-            messaging.unsubscribeFromTopic("announcements_$groupId").await()
+-            Log.d(TAG, "Unsubscribed from announcements_$groupId")
+-        } catch (e: Exception) {
+-            Log.e(TAG, "Failed to unsubscribe from announcements: ${e.message}")
++            Log.e(TAG, "Failed to subscribe: ${e.message}")
+         }
+     }
+-
+-    // ── Send Notifications ─────────────────────────────────────────────────────
+ 
+     suspend fun sendNewMemberNotification(
+         groupId: String,
+         groupName: String,
+         memberName: String
+-    ) = withContext(Dispatchers.IO) {
+-        try {
+-            val message = JSONObject().apply {
+-                put("message", JSONObject().apply {
+-                    put("topic", "group_$groupId")
+-                    put("notification", JSONObject().apply {
+-                        put("title", "👋 New Member Joined!")
+-                        put("body", "$memberName joined $groupName")
+-                    })
+-                    put("data", JSONObject().apply {
+-                        put("type", "new_member")
+-                        put("groupId", groupId)
+-                        put("groupName", groupName)
+-                        put("memberName", memberName)
+-                    })
+-                    put("android", JSONObject().apply {
+-                        put("notification", JSONObject().apply {
+-                            put("channel_id", "hanaparal_general")
+-                            put("sound", "default")
+-                            put("priority", "high")
+-                        })
+-                    })
+-                })
+-            }
+-            Log.d(TAG, "New member notification prepared for topic: group_$groupId")
+-            Log.d(TAG, "Message: ${message.toString()}")
+-        } catch (e: Exception) {
+-            Log.e(TAG, "Failed to send new member notification: ${e.message}")
+-        }
++    ) {
++        Log.d(TAG, "Simulating notification: $memberName joined $groupName")
++        // In a real app, a backend would send this via FCM. 
++        // For testing, we trigger a local notification to verify the UI/Channel works.
++        showLocalNotification(
++            title = "👋 New Member Joined!",
++            body = "$memberName joined $groupName",
++            channelId = "hanaparal_general"
++        )
+     }
+ 
+     suspend fun sendAnnouncementNotification(
+@@ -106,69 +63,27 @@
+         groupName: String,
+         senderName: String,
+         message: String
+-    ) = withContext(Dispatchers.IO) {
+-        try {
+-            val fcmMessage = JSONObject().apply {
+-                put("message", JSONObject().apply {
+-                    put("topic", "announcements_$groupId")
+-                    put("notification", JSONObject().apply {
+-                        put("title", "📢 $groupName")
+-                        put("body", "$senderName: $message")
+-                    })
+-                    put("data", JSONObject().apply {
+-                        put("type", "announcement")
+-                        put("groupId", groupId)
+-                        put("groupName", groupName)
+-                        put("senderName", senderName)
+-                    })
+-                    put("android", JSONObject().apply {
+-                        put("notification", JSONObject().apply {
+-                            put("channel_id", "hanaparal_announcements")
+-                            put("sound", "default")
+-                            put("priority", "high")
+-                        })
+-                    })
+-                })
+-            }
+-            Log.d(TAG, "Announcement notification prepared for topic: announcements_$groupId")
+-            Log.d(TAG, "Message: ${fcmMessage.toString()}")
+-        } catch (e: Exception) {
+-            Log.e(TAG, "Failed to send announcement notification: ${e.message}")
+-        }
++    ) {
++        Log.d(TAG, "Simulating announcement: $senderName in $groupName")
++        showLocalNotification(
++            title = "📢 $groupName",
++            body = "$senderName: $message",
++            channelId = "hanaparal_announcements"
++        )
+     }
+ 
+-    suspend fun sendStudyReminder(
+-        groupId: String,
+-        groupName: String,
+-        schedule: String
+-    ) = withContext(Dispatchers.IO) {
+-        try {
+-            val message = JSONObject().apply {
+-                put("message", JSONObject().apply {
+-                    put("topic", "group_$groupId")
+-                    put("notification", JSONObject().apply {
+-                        put("title", "📚 Study Reminder!")
+-                        put("body", "$groupName meets $schedule")
+-                    })
+-                    put("data", JSONObject().apply {
+-                        put("type", "reminder")
+-                        put("groupId", groupId)
+-                        put("groupName", groupName)
+-                        put("schedule", schedule)
+-                    })
+-                    put("android", JSONObject().apply {
+-                        put("notification", JSONObject().apply {
+-                            put("channel_id", "hanaparal_reminders")
+-                            put("sound", "default")
+-                            put("priority", "high")
+-                        })
+-                    })
+-                })
+-            }
+-            Log.d(TAG, "Study reminder prepared for topic: group_$groupId")
+-            Log.d(TAG, "Message: ${message.toString()}")
+-        } catch (e: Exception) {
+-            Log.e(TAG, "Failed to send study reminder: ${e.message}")
+-        }
+-    }
+-}
+\ No newline at end of file
++    private fun showLocalNotification(title: String, body: String, channelId: String) {
++        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
++        val notification = NotificationCompat.Builder(context, channelId)
++            .setSmallIcon(R.drawable.ic_notification)
++            .setContentTitle(title)
++            .setContentText(body)
++            .setPriority(NotificationCompat.PRIORITY_HIGH)
++            .setAutoCancel(true)
++            .build()
++        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
++    }
++
++    suspend fun unsubscribeFromGroup(groupId: String) = messaging.unsubscribeFromTopic("group_$groupId").await()
++    suspend fun unsubscribeFromAnnouncements(groupId: String) = messaging.unsubscribeFromTopic("announcements_$groupId").await()
++}
+Index: app/src/main/java/com/example/hanaparal/ui/notifications/NotificationsScreen.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.hanaparal.ui.notifications\r\n\r\nimport androidx.compose.foundation.layout.Arrangement\r\nimport androidx.compose.foundation.layout.Box\r\nimport androidx.compose.foundation.layout.Column\r\nimport androidx.compose.foundation.layout.Row\r\nimport androidx.compose.foundation.layout.Spacer\r\nimport androidx.compose.foundation.layout.fillMaxSize\r\nimport androidx.compose.foundation.layout.fillMaxWidth\r\nimport androidx.compose.foundation.layout.height\r\nimport androidx.compose.foundation.layout.padding\r\nimport androidx.compose.foundation.layout.size\r\nimport androidx.compose.foundation.lazy.LazyColumn\r\nimport androidx.compose.foundation.lazy.items\r\nimport androidx.compose.material.icons.Icons\r\nimport androidx.compose.material.icons.filled.Notifications\r\nimport androidx.compose.material.icons.filled.Refresh\r\nimport androidx.compose.material3.Card\r\nimport androidx.compose.material3.CardDefaults\r\nimport androidx.compose.material3.CircularProgressIndicator\r\nimport androidx.compose.material3.ExperimentalMaterial3Api\r\nimport androidx.compose.material3.Icon\r\nimport androidx.compose.material3.IconButton\r\nimport androidx.compose.material3.MaterialTheme\r\nimport androidx.compose.material3.Scaffold\r\nimport androidx.compose.material3.Text\r\nimport androidx.compose.runtime.Composable\r\nimport androidx.compose.runtime.getValue\r\nimport androidx.compose.ui.Alignment\r\nimport androidx.compose.ui.Modifier\r\nimport androidx.compose.ui.text.font.FontWeight\r\nimport androidx.compose.ui.unit.dp\r\nimport androidx.compose.ui.unit.sp\r\nimport androidx.hilt.navigation.compose.hiltViewModel\r\nimport androidx.lifecycle.compose.collectAsStateWithLifecycle\r\nimport com.example.hanaparal.data.model.Announcement\r\nimport com.example.hanaparal.ui.components.EmptyState\r\nimport com.example.hanaparal.ui.components.TopBar\r\nimport java.text.SimpleDateFormat\r\nimport java.util.Date\r\nimport java.util.Locale\r\n\r\n@OptIn(ExperimentalMaterial3Api::class)\r\n@Composable\r\nfun NotificationsScreen(\r\n    viewModel: NotificationsViewModel = hiltViewModel()\r\n) {\r\n    val uiState by viewModel.uiState.collectAsStateWithLifecycle()\r\n\r\n    Scaffold(\r\n        topBar = {\r\n            TopBar(\r\n                title = \"Notifications\",\r\n                actions = {\r\n                    IconButton(onClick = { viewModel.refresh() }) {\r\n                        Icon(\r\n                            imageVector = Icons.Default.Refresh,\r\n                            contentDescription = \"Refresh\",\r\n                            tint = MaterialTheme.colorScheme.onPrimary\r\n                        )\r\n                    }\r\n                }\r\n            )\r\n        }\r\n    ) { paddingValues ->\r\n        Box(\r\n            modifier = Modifier\r\n                .fillMaxSize()\r\n                .padding(paddingValues)\r\n        ) {\r\n            when (val state = uiState) {\r\n                is NotificationsViewModel.NotificationsUiState.Loading -> {\r\n                    Box(\r\n                        modifier = Modifier.fillMaxSize(),\r\n                        contentAlignment = Alignment.Center\r\n                    ) {\r\n                        CircularProgressIndicator()\r\n                    }\r\n                }\r\n\r\n                is NotificationsViewModel.NotificationsUiState.Empty -> {\r\n                    Box(\r\n                        modifier = Modifier.fillMaxSize(),\r\n                        contentAlignment = Alignment.Center\r\n                    ) {\r\n                        EmptyState(\r\n                            icon = Icons.Default.Notifications,\r\n                            title = \"No Notifications\",\r\n                            message = \"Join a study group to receive announcements and updates.\",\r\n                            actionText = \"Refresh\",\r\n                            onAction = { viewModel.refresh() }\r\n                        )\r\n                    }\r\n                }\r\n\r\n                is NotificationsViewModel.NotificationsUiState.Error -> {\r\n                    Box(\r\n                        modifier = Modifier.fillMaxSize(),\r\n                        contentAlignment = Alignment.Center\r\n                    ) {\r\n                        EmptyState(\r\n                            icon = Icons.Default.Notifications,\r\n                            title = \"Something went wrong\",\r\n                            message = state.message,\r\n                            actionText = \"Try Again\",\r\n                            onAction = { viewModel.refresh() }\r\n                        )\r\n                    }\r\n                }\r\n\r\n                is NotificationsViewModel.NotificationsUiState.Success -> {\r\n                    LazyColumn(\r\n                        modifier = Modifier\r\n                            .fillMaxSize()\r\n                            .padding(horizontal = 16.dp),\r\n                        verticalArrangement = Arrangement.spacedBy(8.dp)\r\n                    ) {\r\n                        item { Spacer(modifier = Modifier.height(8.dp)) }\r\n                        items(state.announcements) { (groupId, announcement) ->\r\n                            NotificationItem(\r\n                                announcement = announcement,\r\n                                groupId = groupId\r\n                            )\r\n                        }\r\n                        item { Spacer(modifier = Modifier.height(16.dp)) }\r\n                    }\r\n                }\r\n            }\r\n        }\r\n    }\r\n}\r\n\r\n@Composable\r\nfun NotificationItem(\r\n    announcement: Announcement,\r\n    groupId: String\r\n) {\r\n    Card(\r\n        modifier = Modifier.fillMaxWidth(),\r\n        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),\r\n        colors = CardDefaults.cardColors(\r\n            containerColor = MaterialTheme.colorScheme.surface\r\n        )\r\n    ) {\r\n        Column(\r\n            modifier = Modifier\r\n                .fillMaxWidth()\r\n                .padding(16.dp)\r\n        ) {\r\n            Row(\r\n                modifier = Modifier.fillMaxWidth(),\r\n                horizontalArrangement = Arrangement.SpaceBetween,\r\n                verticalAlignment = Alignment.CenterVertically\r\n            ) {\r\n                Row(\r\n                    verticalAlignment = Alignment.CenterVertically,\r\n                    horizontalArrangement = Arrangement.spacedBy(8.dp)\r\n                ) {\r\n                    Icon(\r\n                        imageVector = Icons.Default.Notifications,\r\n                        contentDescription = null,\r\n                        tint = MaterialTheme.colorScheme.primary,\r\n                        modifier = Modifier.size(18.dp)\r\n                    )\r\n                    Text(\r\n                        text = \"Announcement\",\r\n                        fontWeight = FontWeight.Bold,\r\n                        fontSize = 13.sp,\r\n                        color = MaterialTheme.colorScheme.primary\r\n                    )\r\n                }\r\n                Text(\r\n                    text = SimpleDateFormat(\r\n                        \"MMM dd, hh:mm a\",\r\n                        Locale.getDefault()\r\n                    ).format(Date(announcement.createdAt)),\r\n                    fontSize = 11.sp,\r\n                    color = MaterialTheme.colorScheme.onSurfaceVariant\r\n                )\r\n            }\r\n\r\n            Spacer(modifier = Modifier.height(6.dp))\r\n\r\n            Text(\r\n                text = announcement.message,\r\n                fontSize = 14.sp,\r\n                color = MaterialTheme.colorScheme.onSurface\r\n            )\r\n\r\n            Spacer(modifier = Modifier.height(6.dp))\r\n\r\n            Text(\r\n                text = \"From: ${announcement.senderName}\",\r\n                fontSize = 12.sp,\r\n                color = MaterialTheme.colorScheme.onSurfaceVariant\r\n            )\r\n        }\r\n    }\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/hanaparal/ui/notifications/NotificationsScreen.kt b/app/src/main/java/com/example/hanaparal/ui/notifications/NotificationsScreen.kt
+--- a/app/src/main/java/com/example/hanaparal/ui/notifications/NotificationsScreen.kt	(revision 137a7fb7ae6194232aaaca83730aaf69d6753790)
++++ b/app/src/main/java/com/example/hanaparal/ui/notifications/NotificationsScreen.kt	(date 1775030837030)
+@@ -1,8 +1,15 @@
+ package com.example.hanaparal.ui.notifications
+ 
++import android.Manifest
++import android.app.NotificationManager
++import android.content.Context
++import android.os.Build
++import androidx.activity.compose.rememberLauncherForActivityResult
++import androidx.activity.result.contract.ActivityResultContracts
+ import androidx.compose.foundation.layout.Arrangement
+ import androidx.compose.foundation.layout.Box
+ import androidx.compose.foundation.layout.Column
++import androidx.compose.foundation.layout.PaddingValues
+ import androidx.compose.foundation.layout.Row
+ import androidx.compose.foundation.layout.Spacer
+ import androidx.compose.foundation.layout.fillMaxSize
+@@ -13,8 +20,10 @@
+ import androidx.compose.foundation.lazy.LazyColumn
+ import androidx.compose.foundation.lazy.items
+ import androidx.compose.material.icons.Icons
++import androidx.compose.material.icons.filled.Add
+ import androidx.compose.material.icons.filled.Notifications
+ import androidx.compose.material.icons.filled.Refresh
++import androidx.compose.material3.Button
+ import androidx.compose.material3.Card
+ import androidx.compose.material3.CardDefaults
+ import androidx.compose.material3.CircularProgressIndicator
+@@ -25,16 +34,20 @@
+ import androidx.compose.material3.Scaffold
+ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
++import androidx.compose.runtime.LaunchedEffect
+ import androidx.compose.runtime.getValue
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.platform.LocalContext
+ import androidx.compose.ui.text.font.FontWeight
++import androidx.compose.ui.text.style.TextAlign
+ import androidx.compose.ui.unit.dp
+ import androidx.compose.ui.unit.sp
++import androidx.core.app.NotificationCompat
+ import androidx.hilt.navigation.compose.hiltViewModel
+ import androidx.lifecycle.compose.collectAsStateWithLifecycle
++import com.example.hanaparal.R
+ import com.example.hanaparal.data.model.Announcement
+-import com.example.hanaparal.ui.components.EmptyState
+ import com.example.hanaparal.ui.components.TopBar
+ import java.text.SimpleDateFormat
+ import java.util.Date
+@@ -46,6 +59,23 @@
+     viewModel: NotificationsViewModel = hiltViewModel()
+ ) {
+     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
++    val context = LocalContext.current
++
++    // Request Notification Permission for Android 13+
++    val launcher = rememberLauncherForActivityResult(
++        contract = ActivityResultContracts.RequestPermission(),
++        onResult = { isGranted ->
++            if (isGranted) {
++                // Permission granted
++            }
++        }
++    )
++
++    LaunchedEffect(Unit) {
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
++            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
++        }
++    }
+ 
+     Scaffold(
+         topBar = {
+@@ -62,7 +92,7 @@
+                 }
+             )
+         }
+-    ) { paddingValues ->
++    ) { paddingValues: PaddingValues ->
+         Box(
+             modifier = Modifier
+                 .fillMaxSize()
+@@ -79,32 +109,67 @@
+                 }
+ 
+                 is NotificationsViewModel.NotificationsUiState.Empty -> {
+-                    Box(
++                    Column(
+                         modifier = Modifier.fillMaxSize(),
+-                        contentAlignment = Alignment.Center
++                        horizontalAlignment = Alignment.CenterHorizontally,
++                        verticalArrangement = Arrangement.Center
+                     ) {
+-                        EmptyState(
+-                            icon = Icons.Default.Notifications,
+-                            title = "No Notifications",
+-                            message = "Join a study group to receive announcements and updates.",
+-                            actionText = "Refresh",
+-                            onAction = { viewModel.refresh() }
++                        Icon(
++                            imageVector = Icons.Default.Notifications,
++                            contentDescription = null,
++                            modifier = Modifier.size(80.dp),
++                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
++                        )
++                        Spacer(modifier = Modifier.height(16.dp))
++                        Text(
++                            text = "No Notifications",
++                            style = MaterialTheme.typography.titleLarge,
++                            fontWeight = FontWeight.Bold
++                        )
++                        Text(
++                            text = "Join a study group to receive announcements.",
++                            modifier = Modifier.padding(horizontal = 32.dp),
++                            textAlign = TextAlign.Center,
++                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                         )
++                        Spacer(modifier = Modifier.height(32.dp))
++                        Button(
++                            onClick = { viewModel.joinDemoGroup() },
++                            modifier = Modifier.fillMaxWidth(0.7f)
++                        ) {
++                            Icon(Icons.Default.Add, contentDescription = null)
++                            Spacer(Modifier.size(8.dp))
++                            Text("Join Demo Group & Test")
++                        }
++                        Spacer(modifier = Modifier.height(8.dp))
++                        Button(
++                            onClick = { viewModel.refresh() },
++                            modifier = Modifier.fillMaxWidth(0.7f)
++                        ) {
++                            Text("Refresh")
++                        }
+                     }
+                 }
+ 
+                 is NotificationsViewModel.NotificationsUiState.Error -> {
+-                    Box(
+-                        modifier = Modifier.fillMaxSize(),
+-                        contentAlignment = Alignment.Center
++                    Column(
++                        modifier = Modifier.fillMaxSize().padding(16.dp),
++                        horizontalAlignment = Alignment.CenterHorizontally,
++                        verticalArrangement = Arrangement.Center
+                     ) {
+-                        EmptyState(
+-                            icon = Icons.Default.Notifications,
+-                            title = "Something went wrong",
+-                            message = state.message,
+-                            actionText = "Try Again",
+-                            onAction = { viewModel.refresh() }
++                        Text(
++                            text = "Error",
++                            style = MaterialTheme.typography.titleLarge,
++                            color = MaterialTheme.colorScheme.error
+                         )
++                        Text(
++                            text = state.message,
++                            textAlign = TextAlign.Center,
++                            modifier = Modifier.padding(16.dp)
++                        )
++                        Button(onClick = { viewModel.refresh() }) {
++                            Text("Try Again")
++                        }
+                     }
+                 }
+ 
+@@ -115,11 +180,23 @@
+                             .padding(horizontal = 16.dp),
+                         verticalArrangement = Arrangement.spacedBy(8.dp)
+                     ) {
+-                        item { Spacer(modifier = Modifier.height(8.dp)) }
+-                        items(state.announcements) { (groupId, announcement) ->
++                        item {
++                            Column(
++                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
++                                horizontalAlignment = Alignment.CenterHorizontally
++                            ) {
++                                Button(onClick = { sendTestNotification(context) }) {
++                                    Text("Send Test Notification")
++                                }
++                            }
++                        }
++                        items(
++                            items = state.announcements,
++                            key = { it.second.announcementId }
++                        ) { pair ->
+                             NotificationItem(
+-                                announcement = announcement,
+-                                groupId = groupId
++                                announcement = pair.second,
++                                groupId = pair.first
+                             )
+                         }
+                         item { Spacer(modifier = Modifier.height(16.dp)) }
+@@ -130,6 +207,19 @@
+     }
+ }
+ 
++private fun sendTestNotification(context: Context) {
++    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
++    val notification = NotificationCompat.Builder(context, "hanaparal_announcements")
++        .setSmallIcon(R.drawable.ic_notification)
++        .setContentTitle("📢 Test Announcement")
++        .setContentText("This is a test notification to verify your channels work!")
++        .setPriority(NotificationCompat.PRIORITY_HIGH)
++        .setDefaults(NotificationCompat.DEFAULT_ALL)
++        .setAutoCancel(true)
++        .build()
++    notificationManager.notify(System.currentTimeMillis().toInt(), notification)
++}
++
+ @Composable
+ fun NotificationItem(
+     announcement: Announcement,
+@@ -188,6 +278,12 @@
+             )
+ 
+             Spacer(modifier = Modifier.height(6.dp))
++            
++            Text(
++                text = "Group ID: $groupId",
++                fontSize = 11.sp,
++                color = MaterialTheme.colorScheme.secondary
++            )
+ 
+             Text(
+                 text = "From: ${announcement.senderName}",
+@@ -196,4 +292,4 @@
+             )
+         }
+     }
+-}
+\ No newline at end of file
++}
+Index: app/src/main/java/com/example/hanaparal/ui/notifications/NotificationsViewModel.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.hanaparal.ui.notifications\r\n\r\nimport androidx.lifecycle.ViewModel\r\nimport androidx.lifecycle.viewModelScope\r\nimport com.example.hanaparal.data.model.Announcement\r\nimport com.example.hanaparal.data.repository.GroupRepository\r\nimport com.google.firebase.auth.FirebaseAuth\r\nimport dagger.hilt.android.lifecycle.HiltViewModel\r\nimport kotlinx.coroutines.flow.MutableStateFlow\r\nimport kotlinx.coroutines.flow.StateFlow\r\nimport kotlinx.coroutines.flow.asStateFlow\r\nimport kotlinx.coroutines.flow.first\r\nimport kotlinx.coroutines.launch\r\nimport javax.inject.Inject\r\n\r\n@HiltViewModel\r\nclass NotificationsViewModel @Inject constructor(\r\n    private val groupRepository: GroupRepository,\r\n    private val auth: FirebaseAuth\r\n) : ViewModel() {\r\n\r\n    sealed class NotificationsUiState {\r\n        object Loading : NotificationsUiState()\r\n        object Empty : NotificationsUiState()\r\n        data class Success(val announcements: List<Pair<String, Announcement>>) : NotificationsUiState()\r\n        data class Error(val message: String) : NotificationsUiState()\r\n    }\r\n\r\n    private val _uiState = MutableStateFlow<NotificationsUiState>(NotificationsUiState.Loading)\r\n    val uiState: StateFlow<NotificationsUiState> = _uiState.asStateFlow()\r\n\r\n    val currentUid: String\r\n        get() = auth.currentUser?.uid ?: \"\"\r\n\r\n    init {\r\n        loadMyGroupAnnouncements()\r\n    }\r\n\r\n    private fun loadMyGroupAnnouncements() {\r\n        viewModelScope.launch {\r\n            try {\r\n                // Get all groups once\r\n                val groups = groupRepository.observeAllGroups().first()\r\n\r\n                if (groups.isEmpty()) {\r\n                    _uiState.value = NotificationsUiState.Empty\r\n                    return@launch\r\n                }\r\n\r\n                // Filter groups the user is a member of\r\n                val myGroupIds = groups\r\n                    .filter { group ->\r\n                        groupRepository.isGroupMember(group.groupId, currentUid)\r\n                    }\r\n                    .map { it.groupId }\r\n\r\n                if (myGroupIds.isEmpty()) {\r\n                    _uiState.value = NotificationsUiState.Empty\r\n                    return@launch\r\n                }\r\n\r\n                // Collect announcements from all my groups\r\n                val allAnnouncements = mutableListOf<Pair<String, Announcement>>()\r\n                for (groupId in myGroupIds) {\r\n                    val announcements = groupRepository.observeAnnouncements(groupId).first()\r\n                    announcements.forEach { announcement ->\r\n                        allAnnouncements.add(Pair(groupId, announcement))\r\n                    }\r\n                }\r\n\r\n                if (allAnnouncements.isEmpty()) {\r\n                    _uiState.value = NotificationsUiState.Empty\r\n                } else {\r\n                    _uiState.value = NotificationsUiState.Success(\r\n                        allAnnouncements.sortedByDescending { it.second.createdAt }\r\n                    )\r\n                }\r\n            } catch (e: Exception) {\r\n                _uiState.value = NotificationsUiState.Error(\r\n                    e.message ?: \"Failed to load notifications\"\r\n                )\r\n            }\r\n        }\r\n    }\r\n\r\n    fun refresh() {\r\n        _uiState.value = NotificationsUiState.Loading\r\n        loadMyGroupAnnouncements()\r\n    }\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/hanaparal/ui/notifications/NotificationsViewModel.kt b/app/src/main/java/com/example/hanaparal/ui/notifications/NotificationsViewModel.kt
+--- a/app/src/main/java/com/example/hanaparal/ui/notifications/NotificationsViewModel.kt	(revision 137a7fb7ae6194232aaaca83730aaf69d6753790)
++++ b/app/src/main/java/com/example/hanaparal/ui/notifications/NotificationsViewModel.kt	(date 1775030177724)
+@@ -1,22 +1,28 @@
+ package com.example.hanaparal.ui.notifications
+ 
++import android.util.Log
+ import androidx.lifecycle.ViewModel
+ import androidx.lifecycle.viewModelScope
+ import com.example.hanaparal.data.model.Announcement
++import com.example.hanaparal.data.model.Group
++import com.example.hanaparal.data.model.Member
+ import com.example.hanaparal.data.repository.GroupRepository
+ import com.google.firebase.auth.FirebaseAuth
++import com.google.firebase.messaging.FirebaseMessaging
+ import dagger.hilt.android.lifecycle.HiltViewModel
+ import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.StateFlow
+ import kotlinx.coroutines.flow.asStateFlow
+ import kotlinx.coroutines.flow.first
+ import kotlinx.coroutines.launch
++import kotlinx.coroutines.tasks.await
+ import javax.inject.Inject
+ 
+ @HiltViewModel
+ class NotificationsViewModel @Inject constructor(
+     private val groupRepository: GroupRepository,
+-    private val auth: FirebaseAuth
++    private val auth: FirebaseAuth,
++    private val fcm: FirebaseMessaging
+ ) : ViewModel() {
+ 
+     sealed class NotificationsUiState {
+@@ -29,17 +35,43 @@
+     private val _uiState = MutableStateFlow<NotificationsUiState>(NotificationsUiState.Loading)
+     val uiState: StateFlow<NotificationsUiState> = _uiState.asStateFlow()
+ 
+-    val currentUid: String
++    private val currentUid: String
+         get() = auth.currentUser?.uid ?: ""
+ 
+     init {
+-        loadMyGroupAnnouncements()
++        logFcmToken()
++        ensureAuthenticatedAndLoad()
++    }
++
++    private fun logFcmToken() {
++        viewModelScope.launch {
++            try {
++                val token = fcm.token.await()
++                Log.d("FCM_TEST", "Current FCM Token: $token")
++            } catch (e: Exception) {
++                Log.e("FCM_TEST", "Failed to get token: ${e.message}")
++            }
++        }
++    }
++
++    private fun ensureAuthenticatedAndLoad() {
++        viewModelScope.launch {
++            _uiState.value = NotificationsUiState.Loading
++            if (auth.currentUser == null) {
++                try {
++                    auth.signInAnonymously().await()
++                } catch (e: Exception) {
++                    _uiState.value = NotificationsUiState.Error("Auth failed: ${e.message}")
++                    return@launch
++                }
++            }
++            loadMyGroupAnnouncements()
++        }
+     }
+ 
+     private fun loadMyGroupAnnouncements() {
+         viewModelScope.launch {
+             try {
+-                // Get all groups once
+                 val groups = groupRepository.observeAllGroups().first()
+ 
+                 if (groups.isEmpty()) {
+@@ -47,19 +79,18 @@
+                     return@launch
+                 }
+ 
+-                // Filter groups the user is a member of
+-                val myGroupIds = groups
+-                    .filter { group ->
+-                        groupRepository.isGroupMember(group.groupId, currentUid)
++                val myGroupIds = mutableListOf<String>()
++                for (group in groups) {
++                    if (groupRepository.isGroupMember(group.groupId, currentUid)) {
++                        myGroupIds.add(group.groupId)
+                     }
+-                    .map { it.groupId }
++                }
+ 
+                 if (myGroupIds.isEmpty()) {
+                     _uiState.value = NotificationsUiState.Empty
+                     return@launch
+                 }
+ 
+-                // Collect announcements from all my groups
+                 val allAnnouncements = mutableListOf<Pair<String, Announcement>>()
+                 for (groupId in myGroupIds) {
+                     val announcements = groupRepository.observeAnnouncements(groupId).first()
+@@ -83,8 +114,42 @@
+         }
+     }
+ 
+-    fun refresh() {
+-        _uiState.value = NotificationsUiState.Loading
+-        loadMyGroupAnnouncements()
++    fun joinDemoGroup() {
++        viewModelScope.launch {
++            _uiState.value = NotificationsUiState.Loading
++            try {
++                // 1. Create a demo group if none exist
++                val groups = groupRepository.observeAllGroups().first()
++                val targetGroupId = if (groups.isEmpty()) {
++                    groupRepository.createGroup(
++                        Group(
++                            name = "Demo Study Group",
++                            subject = "Android Testing",
++                            description = "A group for testing notifications",
++                            creatorId = "system"
++                        )
++                    ).getOrThrow()
++                } else {
++                    groups.first().groupId
++                }
++
++                // 2. Join the group
++                val member = Member(
++                    uid = currentUid,
++                    displayName = "Test User",
++                    joinedAt = System.currentTimeMillis()
++                )
++                groupRepository.joinGroup(targetGroupId, member).getOrThrow()
++
++                // 3. Refresh
++                loadMyGroupAnnouncements()
++            } catch (e: Exception) {
++                _uiState.value = NotificationsUiState.Error("Failed to join demo: ${e.message}")
++            }
++        }
+     }
+-}
+\ No newline at end of file
++
++    fun refresh() {
++        ensureAuthenticatedAndLoad()
++    }
++}
+Index: app/build.gradle.kts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>plugins {\r\n    alias(libs.plugins.android.application)\r\n    alias(libs.plugins.kotlin.android)\r\n    alias(libs.plugins.kotlin.compose)\r\n}\r\n\r\nandroid {\r\n    namespace = \"com.example.hanaparal\"\r\n    compileSdk {\r\n        version = release(36)\r\n    }\r\n\r\n    defaultConfig {\r\n        applicationId = \"com.example.hanaparal\"\r\n        minSdk = 24\r\n        targetSdk = 36\r\n        versionCode = 1\r\n        versionName = \"1.0\"\r\n\r\n        testInstrumentationRunner = \"androidx.test.runner.AndroidJUnitRunner\"\r\n    }\r\n\r\n    buildTypes {\r\n        release {\r\n            isMinifyEnabled = false\r\n            proguardFiles(\r\n                getDefaultProguardFile(\"proguard-android-optimize.txt\"),\r\n                \"proguard-rules.pro\"\r\n            )\r\n        }\r\n    }\r\n    compileOptions {\r\n        sourceCompatibility = JavaVersion.VERSION_11\r\n        targetCompatibility = JavaVersion.VERSION_11\r\n    }\r\n    kotlinOptions {\r\n        jvmTarget = \"11\"\r\n    }\r\n    buildFeatures {\r\n        compose = true\r\n    }\r\n}\r\n\r\ndependencies {\r\n    implementation(libs.androidx.core.ktx)\r\n    implementation(libs.androidx.lifecycle.runtime.ktx)\r\n    implementation(libs.androidx.activity.compose)\r\n    implementation(platform(libs.androidx.compose.bom))\r\n    implementation(libs.androidx.compose.ui)\r\n    implementation(libs.androidx.compose.ui.graphics)\r\n    implementation(libs.androidx.compose.ui.tooling.preview)\r\n    implementation(libs.androidx.compose.material3)\r\n    testImplementation(libs.junit)\r\n    androidTestImplementation(libs.androidx.junit)\r\n    androidTestImplementation(libs.androidx.espresso.core)\r\n    androidTestImplementation(platform(libs.androidx.compose.bom))\r\n    androidTestImplementation(libs.androidx.compose.ui.test.junit4)\r\n    debugImplementation(libs.androidx.compose.ui.tooling)\r\n    debugImplementation(libs.androidx.compose.ui.test.manifest)\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+--- a/app/build.gradle.kts	(revision 137a7fb7ae6194232aaaca83730aaf69d6753790)
++++ b/app/build.gradle.kts	(date 1774962087752)
+@@ -2,18 +2,19 @@
+     alias(libs.plugins.android.application)
+     alias(libs.plugins.kotlin.android)
+     alias(libs.plugins.kotlin.compose)
++    alias(libs.plugins.hilt)
++    alias(libs.plugins.google.services)
++    kotlin("kapt")
+ }
+ 
+ android {
+     namespace = "com.example.hanaparal"
+-    compileSdk {
+-        version = release(36)
+-    }
++    compileSdk = 35
+ 
+     defaultConfig {
+         applicationId = "com.example.hanaparal"
+         minSdk = 24
+-        targetSdk = 36
++        targetSdk = 35
+         versionCode = 1
+         versionName = "1.0"
+ 
+@@ -30,11 +31,11 @@
+         }
+     }
+     compileOptions {
+-        sourceCompatibility = JavaVersion.VERSION_11
+-        targetCompatibility = JavaVersion.VERSION_11
++        sourceCompatibility = JavaVersion.VERSION_17
++        targetCompatibility = JavaVersion.VERSION_17
+     }
+     kotlinOptions {
+-        jvmTarget = "11"
++        jvmTarget = "17"
+     }
+     buildFeatures {
+         compose = true
+@@ -44,12 +45,29 @@
+ dependencies {
+     implementation(libs.androidx.core.ktx)
+     implementation(libs.androidx.lifecycle.runtime.ktx)
++    implementation(libs.androidx.lifecycle.runtime.compose)
+     implementation(libs.androidx.activity.compose)
+     implementation(platform(libs.androidx.compose.bom))
+     implementation(libs.androidx.compose.ui)
+     implementation(libs.androidx.compose.ui.graphics)
+     implementation(libs.androidx.compose.ui.tooling.preview)
+     implementation(libs.androidx.compose.material3)
++
++    // Firebase
++    implementation(platform(libs.firebase.bom))
++    implementation(libs.firebase.auth)
++    implementation(libs.firebase.database)
++    implementation(libs.firebase.messaging)
++    implementation(libs.firebase.config)
++
++    // Hilt
++    implementation(libs.hilt.android)
++    kapt(libs.hilt.compiler)
++    implementation(libs.androidx.hilt.navigation.compose)
++
++    // Networking
++    implementation(libs.okhttp)
++
+     testImplementation(libs.junit)
+     androidTestImplementation(libs.androidx.junit)
+     androidTestImplementation(libs.androidx.espresso.core)
+@@ -57,4 +75,4 @@
+     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+     debugImplementation(libs.androidx.compose.ui.tooling)
+     debugImplementation(libs.androidx.compose.ui.test.manifest)
+-}
+\ No newline at end of file
++}
+Index: build.gradle.kts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>// Top-level build file where you can add configuration options common to all sub-projects/modules.\r\nplugins {\r\n    alias(libs.plugins.android.application) apply false\r\n    alias(libs.plugins.kotlin.android) apply false\r\n    alias(libs.plugins.kotlin.compose) apply false\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/build.gradle.kts b/build.gradle.kts
+--- a/build.gradle.kts	(revision 137a7fb7ae6194232aaaca83730aaf69d6753790)
++++ b/build.gradle.kts	(date 1774959619414)
+@@ -3,4 +3,6 @@
+     alias(libs.plugins.android.application) apply false
+     alias(libs.plugins.kotlin.android) apply false
+     alias(libs.plugins.kotlin.compose) apply false
++    alias(libs.plugins.hilt) apply false
++    alias(libs.plugins.google.services) apply false
+ }
+\ No newline at end of file
+Index: app/src/main/AndroidManifest.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\"\r\n    xmlns:tools=\"http://schemas.android.com/tools\">\r\n\r\n    <application\r\n        android:allowBackup=\"true\"\r\n        android:dataExtractionRules=\"@xml/data_extraction_rules\"\r\n        android:fullBackupContent=\"@xml/backup_rules\"\r\n        android:icon=\"@mipmap/ic_launcher\"\r\n        android:label=\"@string/app_name\"\r\n        android:roundIcon=\"@mipmap/ic_launcher_round\"\r\n        android:supportsRtl=\"true\"\r\n        android:theme=\"@style/Theme.HanapAral\">\r\n        <activity\r\n            android:name=\".MainActivity\"\r\n            android:exported=\"true\"\r\n            android:label=\"@string/app_name\"\r\n            android:theme=\"@style/Theme.HanapAral\">\r\n            <intent-filter>\r\n                <action android:name=\"android.intent.action.MAIN\" />\r\n\r\n                <category android:name=\"android.intent.category.LAUNCHER\" />\r\n            </intent-filter>\r\n        </activity>\r\n    </application>\r\n\r\n</manifest>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+--- a/app/src/main/AndroidManifest.xml	(revision 137a7fb7ae6194232aaaca83730aaf69d6753790)
++++ b/app/src/main/AndroidManifest.xml	(date 1775030226076)
+@@ -2,7 +2,11 @@
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+     xmlns:tools="http://schemas.android.com/tools">
+ 
++    <uses-permission android:name="android.permission.INTERNET" />
++    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
++
+     <application
++        android:name=".HanapAralApplication"
+         android:allowBackup="true"
+         android:dataExtractionRules="@xml/data_extraction_rules"
+         android:fullBackupContent="@xml/backup_rules"
+@@ -22,6 +26,14 @@
+                 <category android:name="android.intent.category.LAUNCHER" />
+             </intent-filter>
+         </activity>
++
++        <service
++            android:name=".service.HanapAralMessagingService"
++            android:exported="false">
++            <intent-filter>
++                <action android:name="com.google.firebase.MESSAGING_EVENT" />
++            </intent-filter>
++        </service>
+     </application>
+ 
+ </manifest>
+\ No newline at end of file
+Index: gradle/libs.versions.toml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>[versions]\r\nagp = \"8.13.2\"\r\nkotlin = \"2.0.21\"\r\ncoreKtx = \"1.18.0\"\r\njunit = \"4.13.2\"\r\njunitVersion = \"1.3.0\"\r\nespressoCore = \"3.7.0\"\r\nlifecycleRuntimeKtx = \"2.10.0\"\r\nactivityCompose = \"1.13.0\"\r\ncomposeBom = \"2024.09.00\"\r\n\r\n[libraries]\r\nandroidx-core-ktx = { group = \"androidx.core\", name = \"core-ktx\", version.ref = \"coreKtx\" }\r\njunit = { group = \"junit\", name = \"junit\", version.ref = \"junit\" }\r\nandroidx-junit = { group = \"androidx.test.ext\", name = \"junit\", version.ref = \"junitVersion\" }\r\nandroidx-espresso-core = { group = \"androidx.test.espresso\", name = \"espresso-core\", version.ref = \"espressoCore\" }\r\nandroidx-lifecycle-runtime-ktx = { group = \"androidx.lifecycle\", name = \"lifecycle-runtime-ktx\", version.ref = \"lifecycleRuntimeKtx\" }\r\nandroidx-activity-compose = { group = \"androidx.activity\", name = \"activity-compose\", version.ref = \"activityCompose\" }\r\nandroidx-compose-bom = { group = \"androidx.compose\", name = \"compose-bom\", version.ref = \"composeBom\" }\r\nandroidx-compose-ui = { group = \"androidx.compose.ui\", name = \"ui\" }\r\nandroidx-compose-ui-graphics = { group = \"androidx.compose.ui\", name = \"ui-graphics\" }\r\nandroidx-compose-ui-tooling = { group = \"androidx.compose.ui\", name = \"ui-tooling\" }\r\nandroidx-compose-ui-tooling-preview = { group = \"androidx.compose.ui\", name = \"ui-tooling-preview\" }\r\nandroidx-compose-ui-test-manifest = { group = \"androidx.compose.ui\", name = \"ui-test-manifest\" }\r\nandroidx-compose-ui-test-junit4 = { group = \"androidx.compose.ui\", name = \"ui-test-junit4\" }\r\nandroidx-compose-material3 = { group = \"androidx.compose.material3\", name = \"material3\" }\r\n\r\n[plugins]\r\nandroid-application = { id = \"com.android.application\", version.ref = \"agp\" }\r\nkotlin-android = { id = \"org.jetbrains.kotlin.android\", version.ref = \"kotlin\" }\r\nkotlin-compose = { id = \"org.jetbrains.kotlin.plugin.compose\", version.ref = \"kotlin\" }\r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/gradle/libs.versions.toml b/gradle/libs.versions.toml
+--- a/gradle/libs.versions.toml	(revision 137a7fb7ae6194232aaaca83730aaf69d6753790)
++++ b/gradle/libs.versions.toml	(date 1775023434985)
+@@ -1,13 +1,19 @@
+ [versions]
+ agp = "8.13.2"
+ kotlin = "2.0.21"
+-coreKtx = "1.18.0"
++coreKtx = "1.15.0"
+ junit = "4.13.2"
+-junitVersion = "1.3.0"
+-espressoCore = "3.7.0"
+-lifecycleRuntimeKtx = "2.10.0"
+-activityCompose = "1.13.0"
+-composeBom = "2024.09.00"
++junitVersion = "1.2.1"
++espressoCore = "3.6.1"
++lifecycleRuntimeKtx = "2.8.7"
++activityCompose = "1.9.3"
++composeBom = "2024.11.00"
++hilt = "2.52"
++hiltNavigationCompose = "1.2.0"
++coil = "2.7.0"
++firebaseBom = "33.6.0"
++googleServices = "4.4.2"
++okhttp = "4.12.0"
+ 
+ [libraries]
+ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+@@ -15,6 +21,7 @@
+ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+ androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
++androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
+ androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+ androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+ androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+@@ -24,9 +31,20 @@
+ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+ androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
++hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
++hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
++androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
++coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
++firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
++firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
++firebase-database = { group = "com.google.firebase", name = "firebase-database-ktx" }
++firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
++firebase-config = { group = "com.google.firebase", name = "firebase-config-ktx" }
++okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+ 
+ [plugins]
+ android-application = { id = "com.android.application", version.ref = "agp" }
+ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+-
++hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
++google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
