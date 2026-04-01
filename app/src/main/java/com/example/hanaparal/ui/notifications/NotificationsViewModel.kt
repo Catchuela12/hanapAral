@@ -9,6 +9,11 @@ import com.example.hanaparal.data.model.Member
 import com.example.hanaparal.data.repository.GroupRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.hanaparal.data.model.Announcement
+import com.example.hanaparal.data.repository.GroupRepository
+import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +28,7 @@ class NotificationsViewModel @Inject constructor(
     private val groupRepository: GroupRepository,
     private val auth: FirebaseAuth,
     private val fcm: FirebaseMessaging
+    private val auth: FirebaseAuth
 ) : ViewModel() {
 
     sealed class NotificationsUiState {
@@ -67,11 +73,17 @@ class NotificationsViewModel @Inject constructor(
             }
             loadMyGroupAnnouncements()
         }
+    val currentUid: String
+        get() = auth.currentUser?.uid ?: ""
+
+    init {
+        loadMyGroupAnnouncements()
     }
 
     private fun loadMyGroupAnnouncements() {
         viewModelScope.launch {
             try {
+                // Get all groups once
                 val groups = groupRepository.observeAllGroups().first()
 
                 if (groups.isEmpty()) {
@@ -85,12 +97,19 @@ class NotificationsViewModel @Inject constructor(
                         myGroupIds.add(group.groupId)
                     }
                 }
+                // Filter groups the user is a member of
+                val myGroupIds = groups
+                    .filter { group ->
+                        groupRepository.isGroupMember(group.groupId, currentUid)
+                    }
+                    .map { it.groupId }
 
                 if (myGroupIds.isEmpty()) {
                     _uiState.value = NotificationsUiState.Empty
                     return@launch
                 }
 
+                // Collect announcements from all my groups
                 val allAnnouncements = mutableListOf<Pair<String, Announcement>>()
                 for (groupId in myGroupIds) {
                     val announcements = groupRepository.observeAnnouncements(groupId).first()
@@ -151,5 +170,10 @@ class NotificationsViewModel @Inject constructor(
 
     fun refresh() {
         ensureAuthenticatedAndLoad()
+    }
+}
+    fun refresh() {
+        _uiState.value = NotificationsUiState.Loading
+        loadMyGroupAnnouncements()
     }
 }

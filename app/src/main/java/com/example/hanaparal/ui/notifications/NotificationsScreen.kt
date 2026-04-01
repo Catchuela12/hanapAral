@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +27,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,6 +53,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.hanaparal.R
 import com.example.hanaparal.data.model.Announcement
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.hanaparal.data.model.Announcement
+import com.example.hanaparal.ui.components.EmptyState
 import com.example.hanaparal.ui.components.TopBar
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -93,6 +108,7 @@ fun NotificationsScreen(
             )
         }
     ) { paddingValues: PaddingValues ->
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -148,6 +164,17 @@ fun NotificationsScreen(
                         ) {
                             Text("Refresh")
                         }
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EmptyState(
+                            icon = Icons.Default.Notifications,
+                            title = "No Notifications",
+                            message = "Join a study group to receive announcements and updates.",
+                            actionText = "Refresh",
+                            onAction = { viewModel.refresh() }
+                        )
                     }
                 }
 
@@ -170,6 +197,17 @@ fun NotificationsScreen(
                         Button(onClick = { viewModel.refresh() }) {
                             Text("Try Again")
                         }
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        EmptyState(
+                            icon = Icons.Default.Notifications,
+                            title = "Something went wrong",
+                            message = state.message,
+                            actionText = "Try Again",
+                            onAction = { viewModel.refresh() }
+                        )
                     }
                 }
 
@@ -197,6 +235,11 @@ fun NotificationsScreen(
                             NotificationItem(
                                 announcement = pair.second,
                                 groupId = pair.first
+                        item { Spacer(modifier = Modifier.height(8.dp)) }
+                        items(state.announcements) { (groupId, announcement) ->
+                            NotificationItem(
+                                announcement = announcement,
+                                groupId = groupId
                             )
                         }
                         item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -292,4 +335,5 @@ fun NotificationItem(
             )
         }
     }
+}
 }
