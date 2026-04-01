@@ -12,3 +12,4 @@ data class Group(
     val maxMembers: Int = 10,
     val createdAt: Long = 0L
 )
+)

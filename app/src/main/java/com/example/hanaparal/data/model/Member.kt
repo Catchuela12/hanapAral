@@ -5,3 +5,4 @@ data class Member(
     val displayName: String = "",
     val joinedAt: Long = 0L
 )
+)
