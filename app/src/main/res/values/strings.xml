@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">hanapAral</string>
+    <!-- Mula sa google-services.json (client_type 3) -->
+    <string name="default_web_client_id">391892321199-hfq8a039is6m6sj6uh5ggl5594h548ik.apps.googleusercontent.com</string>
 </resources>
