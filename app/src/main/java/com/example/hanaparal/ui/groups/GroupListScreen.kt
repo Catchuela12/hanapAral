@@ -51,7 +51,6 @@ fun GroupListScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val announcementHeader = viewModel.getAnnouncementHeader()
-    val groupCreationEnabled = viewModel.isGroupCreationEnabled()
 
     LaunchedEffect(Unit) {
         viewModel.observeAllGroups()
@@ -69,17 +68,15 @@ fun GroupListScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            if (groupCreationEnabled) {
-                FloatingActionButton(
-                    onClick = onCreateGroup,
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Create Group",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
+            FloatingActionButton(
+                onClick = onCreateGroup,
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Create Group",
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
             }
         }
     ) { paddingValues ->
@@ -129,8 +126,8 @@ fun GroupListScreen(
                             icon = Icons.Default.Group,
                             title = "No Study Groups Yet",
                             message = "Be the first to create a study group!",
-                            actionText = if (groupCreationEnabled) "Create Group" else null,
-                            onAction = if (groupCreationEnabled) onCreateGroup else null
+                            actionText = "Create Group",
+                            onAction = onCreateGroup
                         )
                     }
                 }

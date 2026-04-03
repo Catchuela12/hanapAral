@@ -60,6 +60,15 @@ object FirebaseModule {
             minimumFetchIntervalInSeconds = 3600
         }
         remoteConfig.setConfigSettingsAsync(configSettings)
+        
+        // Set default values so the features work even before the first fetch
+        val defaults = mapOf(
+            "group_creation_enabled" to true,
+            "max_members" to 10L,
+            "announcement_header" to ""
+        )
+        remoteConfig.setDefaultsAsync(defaults)
+
         return remoteConfig
     }
 }
