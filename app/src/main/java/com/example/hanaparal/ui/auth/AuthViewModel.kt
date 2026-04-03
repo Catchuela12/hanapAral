@@ -29,6 +29,32 @@ class AuthViewModel @Inject constructor(
     )
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 
+    fun signInWithEmail(email: String, password: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            authRepository.signInWithEmail(email, password)
+                .onSuccess {
+                    _authState.value = AuthState.Authenticated
+                }
+                .onFailure {
+                    _authState.value = AuthState.Error(it.message ?: "Login failed")
+                }
+        }
+    }
+
+    fun signUpWithEmail(email: String, password: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            authRepository.signUpWithEmail(email, password)
+                .onSuccess {
+                    _authState.value = AuthState.Authenticated
+                }
+                .onFailure {
+                    _authState.value = AuthState.Error(it.message ?: "Registration failed")
+                }
+        }
+    }
+
     fun signInWithGoogle(idToken: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
@@ -39,6 +65,13 @@ class AuthViewModel @Inject constructor(
                 .onFailure {
                     _authState.value = AuthState.Error(it.message ?: "Sign-in failed")
                 }
+        }
+    }
+
+    fun sendPasswordReset(email: String, onResult: (Result<Unit>) -> Unit) {
+        viewModelScope.launch {
+            val result = authRepository.sendPasswordResetEmail(email)
+            onResult(result)
         }
     }
 
