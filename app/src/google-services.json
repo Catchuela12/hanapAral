@@ -1,0 +1,76 @@
+{
+  "project_info": {
+    "project_number": "391892321199",
+    "project_id": "hanaparal-a4062",
+    "storage_bucket": "hanaparal-a4062.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:391892321199:android:016113e3384c5c5573a55a",
+        "android_client_info": {
+          "package_name": "com.example.hanaparal"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "391892321199-hfq8a039is6m6sj6uh5ggl5594h548ik.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqsG8kD64O8ieA7L862SuzEJw6I_WEWhY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "391892321199-hfq8a039is6m6sj6uh5ggl5594h548ik.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:391892321199:android:826831719b93e07f73a55a",
+        "android_client_info": {
+          "package_name": "com.itew4.hanaparal"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "391892321199-6e4is7uivha4sfuduldege26cuo70j1c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.itew4.hanaparal",
+            "certificate_hash": "9d5f0e806a621c20b331580244524f3eebf8c979"
+          }
+        },
+        {
+          "client_id": "391892321199-hfq8a039is6m6sj6uh5ggl5594h548ik.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAqsG8kD64O8ieA7L862SuzEJw6I_WEWhY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "391892321199-hfq8a039is6m6sj6uh5ggl5594h548ik.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
