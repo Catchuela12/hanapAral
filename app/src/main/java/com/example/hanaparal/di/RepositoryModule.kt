@@ -1,7 +1,5 @@
 package com.example.hanaparal.di
 
-import com.example.hanaparal.data.repository.GroupRepository
-import com.example.hanaparal.data.repository.GroupRepositoryImpl
 import com.example.hanaparal.data.repository.AuthRepository
 import com.example.hanaparal.data.repository.AuthRepositoryImpl
 import com.example.hanaparal.data.repository.GroupRepository
@@ -20,10 +18,6 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindGroupRepository(
-        groupRepositoryImpl: GroupRepositoryImpl
-    ): GroupRepository
-}
     abstract fun bindAuthRepository(
         impl: AuthRepositoryImpl
     ): AuthRepository

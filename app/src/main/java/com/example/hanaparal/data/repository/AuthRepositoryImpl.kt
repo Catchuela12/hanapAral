@@ -12,7 +12,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val messaging: FirebaseMessaging
 ) : AuthRepository {
 
     override val currentUser: FirebaseUser?
@@ -22,15 +23,21 @@ class AuthRepositoryImpl @Inject constructor(
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val result = auth.signInWithCredential(credential).await()
-            val user = result.user!!
+            val user = result.user ?: throw Exception("Sign in failed: User is null")
 
-            val token = FirebaseMessaging.getInstance().token.await()
-            firestore.collection("fcm_tokens")
-                .document(user.uid)
-                .set(mapOf(
-                    "token" to token,
-                    "updatedAt" to System.currentTimeMillis()
-                )).await()
+            // Update FCM token on sign-in
+            try {
+                val token = messaging.token.await()
+                firestore.collection("fcm_tokens")
+                    .document(user.uid)
+                    .set(mapOf(
+                        "token" to token,
+                        "updatedAt" to System.currentTimeMillis()
+                    )).await()
+            } catch (e: Exception) {
+                // Log token failure but don't fail the entire sign-in
+                e.printStackTrace()
+            }
 
             Result.success(user)
         } catch (e: Exception) {
@@ -49,7 +56,9 @@ class AuthRepositoryImpl @Inject constructor(
                 .document(uid)
                 .get()
                 .await()
-            document.exists() && document.contains("name")
+            
+            // Check if the user document exists and has a name set
+            document.exists() && !document.getString("name").isNullOrBlank()
         } catch (e: Exception) {
             false
         }
