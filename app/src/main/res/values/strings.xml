@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">hanapAral</string>
+    <string name="title_activity_user">User</string>
+    <string name="title_activity_auth_repository">AuthRepository</string>
+    <string name="title_activity_auth_repository_impl">AuthRepositoryImpl</string>
+    <string name="title_activity_auth_data_source">AuthDataSource</string>
+    <string name="title_activity_repository_module">RepositoryModule</string>
 </resources>
